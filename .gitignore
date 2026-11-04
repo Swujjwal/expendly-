@@ -1,0 +1,24 @@
+# Environments
+.venv/
+venv/
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# SQLite database
+*.db
+*.sqlite3
+expense_tracker.db
+
+# OS / Zip artifacts
+__MACOSX/
+.DS_Store
+
+# Environment variables
+.env
+
+# Editor / Planner
+.claude/plans/
+
