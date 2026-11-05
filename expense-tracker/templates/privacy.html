@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+
+{% block title %}Privacy Policy — Spendly{% endblock %}
+
+{% block content %}
+<section class="terms-section">
+    <a href="{{ url_for('landing') }}" class="terms-back">
+        ← Back to home
+    </a>
+
+    <header class="terms-header">
+        <div class="hero-badge">Privacy & Security</div>
+        <h1 class="terms-title">
+            Privacy <em>Policy</em>
+        </h1>
+        <p class="terms-subtitle">
+            Your privacy is fundamental to how Spendly is designed. We believe your personal financial data should remain strictly yours.
+        </p>
+        <span class="terms-meta">Effective date: March 2026 · Version 1.0</span>
+    </header>
+
+    <div class="terms-content">
+        <!-- 1. Data We Collect -->
+        <article class="terms-card">
+            <div class="terms-card-header">
+                <span class="terms-card-num">01</span>
+                <h2 class="terms-card-title">Data We Collect</h2>
+            </div>
+            <p>
+                We only collect information directly necessary to provide you with personal expense tracking services:
+            </p>
+            <ul>
+                <li><strong>Account Information:</strong> Your name, email address, and securely hashed passwords when you register.</li>
+                <li><strong>Expense & Transaction Records:</strong> Transaction amounts, dates, expense categories, payment methods, and optional personal notes you choose to log.</li>
+                <li><strong>Technical Usage:</strong> Minimal session data and cookie identifiers strictly necessary to keep you authenticated.</li>
+            </ul>
+        </article>
+
+        <!-- 2. How We Use Your Data -->
+        <article class="terms-card">
+            <div class="terms-card-header">
+                <span class="terms-card-num">02</span>
+                <h2 class="terms-card-title">How We Use Your Data</h2>
+            </div>
+            <p>
+                We use the data collected strictly to operate, maintain, and improve your personal finance dashboard:
+            </p>
+            <ul>
+                <li>To calculate your category breakdowns, spending trends, and monthly summaries.</li>
+                <li>To authenticate your sign-in sessions and protect account access.</li>
+                <li>To allow you to create, edit, filter, and delete your expense history.</li>
+            </ul>
+            <div class="terms-callout">
+                <p>◈ Zero data selling: We never sell, lease, or distribute your spending habits or personal details to advertisers, data brokers, or marketing networks.</p>
+            </div>
+        </article>
+
+        <!-- 3. Data Storage -->
+        <article class="terms-card">
+            <div class="terms-card-header">
+                <span class="terms-card-num">03</span>
+                <h2 class="terms-card-title">Data Storage</h2>
+            </div>
+            <p>
+                Your records are stored securely in dedicated database environments. All sensitive credentials, such as account passwords, are protected using industry-standard one-way cryptographic hashing algorithms.
+            </p>
+            <p>
+                You retain full control over your records. When you delete an expense or delete your account, your data is promptly and permanently removed from our active databases.
+            </p>
+        </article>
+
+        <!-- 4. Third Party Services -->
+        <article class="terms-card">
+            <div class="terms-card-header">
+                <span class="terms-card-num">04</span>
+                <h2 class="terms-card-title">Third Party Services</h2>
+            </div>
+            <p>
+                Spendly operates as a focused, self-contained application:
+            </p>
+            <ul>
+                <li>We do not embed third-party tracking pixels, invasive analytics beacons, or advertising behavioral scripts.</li>
+                <li>We only utilize core infrastructure providers (such as hosting and database services) necessary to serve the web application reliably.</li>
+            </ul>
+        </article>
+
+        <!-- 5. Contact Us -->
+        <article class="terms-card">
+            <div class="terms-card-header">
+                <span class="terms-card-num">05</span>
+                <h2 class="terms-card-title">Contact Us</h2>
+            </div>
+            <p>
+                If you have questions, concerns, or requests regarding this Privacy Policy or how your personal financial data is handled, feel free to contact us:
+            </p>
+            <ul>
+                <li><strong>Email:</strong> privacy@spendly.app</li>
+                <li><strong>Website:</strong> <a href="{{ url_for('landing') }}">spendly.local</a></li>
+            </ul>
+        </article>
+
+        <!-- Bottom CTA -->
+        <div class="terms-cta-card">
+            <h3>Ready to track your expenses safely?</h3>
+            <p>Experience transparent, private financial tracking with Spendly today.</p>
+            <div class="hero-actions">
+                <a href="{{ url_for('register') }}" class="btn-primary">Create free account</a>
+                <a href="{{ url_for('landing') }}" class="btn-ghost">Back to home</a>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
