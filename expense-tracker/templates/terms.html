@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+
+{% block title %}Terms and Conditions — Spendly{% endblock %}
+
+{% block content %}
+<section class="terms-section">
+    <a href="{{ url_for('landing') }}" class="terms-back">
+        ← Back to home
+    </a>
+
+    <header class="terms-header">
+        <div class="hero-badge">Legal & Transparency</div>
+        <h1 class="terms-title">
+            Terms &amp; <em>Conditions</em>
+        </h1>
+        <p class="terms-subtitle">
+            Please read these terms carefully before using Spendly. By accessing or using our platform, you agree to be bound by the terms outlined below.
+        </p>
+        <span class="terms-meta">Effective date: March 2026 · Version 1.0</span>
+    </header>
+
+    <div class="terms-content">
+        <!-- 1. Acceptance of Terms -->
+        <article class="terms-card">
+            <div class="terms-card-header">
+                <span class="terms-card-num">01</span>
+                <h2 class="terms-card-title">Acceptance of Terms</h2>
+            </div>
+            <p>
+                By creating an account, browsing, or using Spendly ("the Service"), you agree to comply with and be bound by these Terms and Conditions and our Privacy Policy.
+            </p>
+            <p>
+                If you do not agree to these terms in their entirety, please refrain from using the Service. Continued access or use of Spendly constitutes your acceptance of any revisions or amendments.
+            </p>
+        </article>
+
+        <!-- 2. Use of Service -->
+        <article class="terms-card">
+            <div class="terms-card-header">
+                <span class="terms-card-num">02</span>
+                <h2 class="terms-card-title">Use of Service</h2>
+            </div>
+            <p>
+                Spendly is designed to help you track personal expenses, categorize spending, and gain insight into your personal finances. You agree to use the platform only for legitimate personal finance management.
+            </p>
+            <ul>
+                <li>You must provide accurate, current, and complete registration information.</li>
+                <li>You are solely responsible for maintaining the confidentiality of your login credentials.</li>
+                <li>You may not use Spendly for fraudulent financial activities, illegal transactions, or unauthorized commercial operations.</li>
+                <li>You agree not to attempt to compromise or reverse-engineer the platform's security.</li>
+            </ul>
+        </article>
+
+        <!-- 3. User Data & Privacy -->
+        <article class="terms-card">
+            <div class="terms-card-header">
+                <span class="terms-card-num">03</span>
+                <h2 class="terms-card-title">User Data</h2>
+            </div>
+            <p>
+                You retain complete ownership of all data you record in Spendly, including transactions, amounts, categories, and custom notes.
+            </p>
+            <p>
+                We do not sell, rent, or monetize your individual spending logs to third-party data brokers or advertisers. Your data is used strictly to provide and improve your personal dashboard experience.
+            </p>
+            <div class="terms-callout">
+                <p>◈ Your data belongs to you: Spendly is built to give you clarity, not to monetize your financial privacy.</p>
+            </div>
+        </article>
+
+        <!-- 4. Limitations of Liability -->
+        <article class="terms-card">
+            <div class="terms-card-header">
+                <span class="terms-card-num">04</span>
+                <h2 class="terms-card-title">Limitations of Liability</h2>
+            </div>
+            <p>
+                Spendly provides budgeting and expense tracking tools for informational and organizational purposes only. Spendly is <strong>not</strong> a certified financial advisor, tax accountant, or chartered bank.
+            </p>
+            <p>
+                The platform is provided on an "as is" and "as available" basis. To the maximum extent permitted by applicable law, Spendly shall not be liable for any indirect, incidental, or consequential damages resulting from financial decisions, bookkeeping discrepancies, or loss of access to records.
+            </p>
+        </article>
+
+        <!-- 5. Changes to Terms -->
+        <article class="terms-card">
+            <div class="terms-card-header">
+                <span class="terms-card-num">05</span>
+                <h2 class="terms-card-title">Changes to Terms</h2>
+            </div>
+            <p>
+                We may periodically update these Terms to reflect new features, regulatory requirements, or platform enhancements. Significant updates will be highlighted via notice on the platform or sent to your registered email address.
+            </p>
+            <p>
+                Your continued use of Spendly following any published modifications constitutes your binding agreement to the revised Terms.
+            </p>
+        </article>
+
+        <!-- Bottom CTA -->
+        <div class="terms-cta-card">
+            <h3>Ready to take control of your spending?</h3>
+            <p>Join Spendly today and track every rupee with confidence.</p>
+            <div class="hero-actions">
+                <a href="{{ url_for('register') }}" class="btn-primary">Create free account</a>
+                <a href="{{ url_for('landing') }}" class="btn-ghost">Back to home</a>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
