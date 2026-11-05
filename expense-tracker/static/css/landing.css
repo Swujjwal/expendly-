@@ -1,0 +1,273 @@
+/* ------------------------------------------------------------------ */
+/* Hero Section - Exactly Matching Reference Design                   */
+/* ------------------------------------------------------------------ */
+
+.hero {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    text-align: center !important;
+    padding: 4.5rem 1.5rem 5rem !important;
+    max-width: 960px !important;
+    margin: 0 auto !important;
+    background: transparent !important;
+}
+
+/* Top Pill Badge */
+.hero-pill-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: #e1f6ee;
+    border: 1px solid #c4edd9;
+    color: #1b6351;
+    font-family: var(--font-body, system-ui, sans-serif);
+    font-size: 0.8125rem;
+    font-weight: 500;
+    padding: 0.35rem 1.15rem;
+    border-radius: 9999px;
+    margin-bottom: 2rem;
+}
+
+.pill-dot {
+    width: 6px;
+    height: 6px;
+    background: #1b8360;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+/* Headline */
+.hero-headline {
+    font-family: var(--font-body, 'DM Sans', system-ui, sans-serif);
+    font-size: clamp(2.5rem, 5.5vw, 3.75rem);
+    font-weight: 800;
+    line-height: 1.12;
+    letter-spacing: -0.035em;
+    margin: 0 0 1.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.headline-black {
+    color: #111827;
+}
+
+.headline-green {
+    color: #1b8360;
+}
+
+/* Subtitle */
+.hero-lead {
+    font-family: var(--font-body, 'DM Sans', system-ui, sans-serif);
+    font-size: 1.125rem;
+    line-height: 1.6;
+    color: #525252;
+    max-width: 580px;
+    margin: 0 auto 2.25rem;
+    font-weight: 400;
+}
+
+/* Action Buttons */
+.hero-buttons {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.875rem;
+    margin-bottom: 3.5rem;
+    flex-wrap: wrap;
+}
+
+.hero-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #111827;
+    color: #ffffff !important;
+    font-family: var(--font-body, system-ui, sans-serif);
+    font-size: 0.95rem;
+    font-weight: 600;
+    padding: 0.85rem 1.85rem;
+    border-radius: 12px;
+    text-decoration: none;
+    transition: background-color 0.2s ease, transform 0.1s ease;
+    border: none;
+    cursor: pointer;
+}
+
+.hero-btn:hover {
+    background: #1f2937;
+    color: #ffffff !important;
+}
+
+/* Mockup Window Container */
+.hero-mockup-window {
+    width: 100%;
+    max-width: 860px;
+    background: #f8f8f6;
+    border: 1px solid #e7e7e5;
+    border-radius: 20px;
+    padding: 1.5rem 1.75rem 1.75rem;
+    box-sizing: border-box;
+    text-align: left;
+}
+
+/* Window Control Dots */
+.window-controls {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin-bottom: 1.25rem;
+}
+
+.window-dot {
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.dot-red {
+    background: #f28b82;
+}
+
+.dot-yellow {
+    background: #f6bd60;
+}
+
+.dot-green {
+    background: #80d7b5;
+}
+
+/* Stat Cards Grid */
+.stat-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.mockup-stat-card {
+    background: #ffffff;
+    border: 1px solid #ededed;
+    border-radius: 12px;
+    padding: 1.25rem 1.35rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.stat-card-label {
+    font-size: 0.85rem;
+    color: #71717a;
+    font-weight: 400;
+    line-height: 1.2;
+}
+
+.stat-card-value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #111827;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+    margin: 0.15rem 0;
+}
+
+.stat-card-sub {
+    font-size: 0.8125rem;
+    font-weight: 500;
+    line-height: 1.2;
+}
+
+.text-danger {
+    color: #e05252;
+}
+
+.text-success {
+    color: #1b8360;
+}
+
+.text-muted {
+    color: #9ca3af;
+}
+
+/* Category Progress Bars Card */
+.category-bars-card {
+    background: #ffffff;
+    border: 1px solid #ededed;
+    border-radius: 12px;
+    padding: 1.5rem 1.5rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.15rem;
+}
+
+.cat-bar-row {
+    display: grid;
+    grid-template-columns: 55px 1fr;
+    align-items: center;
+    gap: 1.25rem;
+}
+
+.cat-bar-name {
+    font-size: 0.875rem;
+    color: #71717a;
+    font-weight: 500;
+}
+
+.cat-bar-track {
+    height: 10px;
+    background: #f2efe8;
+    border-radius: 9999px;
+    overflow: hidden;
+    position: relative;
+}
+
+.cat-bar-fill {
+    height: 100%;
+    border-radius: 9999px;
+    transition: width 0.6s ease;
+}
+
+.bar-orange {
+    background: #ea9a26;
+}
+
+.bar-blue {
+    background: #388bdb;
+}
+
+.bar-purple {
+    background: #7e76db;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .hero {
+        padding: 3rem 1rem 3.5rem !important;
+    }
+
+    .hero-headline {
+        font-size: 2.25rem;
+    }
+
+    .hero-lead {
+        font-size: 1rem;
+    }
+
+    .stat-cards-grid {
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
+    }
+
+    .hero-mockup-window {
+        padding: 1.25rem 1rem 1.25rem;
+    }
+
+    .cat-bar-row {
+        grid-template-columns: 50px 1fr;
+        gap: 0.75rem;
+    }
+}
+
