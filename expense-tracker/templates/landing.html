@@ -26,7 +26,7 @@
 
     <div class="hero-buttons">
         <a href="{{ url_for('register') }}" class="hero-btn">Create free account</a>
-        <a href="#features" class="hero-btn">See how it works</a>
+        <a href="#video-modal" class="hero-btn" id="openVideoBtn" role="button">See how it works</a>
     </div>
 
     <div class="hero-mockup-window">
@@ -105,4 +105,78 @@
     </div>
 </section>
 
+<!-- Video Modal -->
+<div id="videoModal" class="video-modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="videoModalTitle">
+    <div class="video-modal-backdrop" id="videoModalBackdrop"></div>
+    <div class="video-modal-dialog">
+        <div class="video-modal-header">
+            <h3 id="videoModalTitle" class="video-modal-title">See how Spendly works</h3>
+            <button type="button" class="video-modal-close" id="closeVideoBtn" aria-label="Close modal">&times;</button>
+        </div>
+        <div class="video-modal-body">
+            <div class="video-responsive-wrap">
+                <iframe id="videoIframe"
+                        src=""
+                        data-src="https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1"
+                        title="Spendly demo video"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                        allowfullscreen>
+                </iframe>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    var openBtn = document.getElementById("openVideoBtn");
+    var modal = document.getElementById("videoModal");
+    var closeBtn = document.getElementById("closeVideoBtn");
+    var backdrop = document.getElementById("videoModalBackdrop");
+    var iframe = document.getElementById("videoIframe");
+    var videoSrc = iframe ? iframe.getAttribute("data-src") : "";
+
+    function openModal(e) {
+        if (e) e.preventDefault();
+        if (iframe && videoSrc) {
+            iframe.src = videoSrc;
+        }
+        if (modal) {
+            modal.classList.add("is-active");
+            modal.setAttribute("aria-hidden", "false");
+        }
+        document.body.style.overflow = "hidden";
+    }
+
+    function closeModal() {
+        if (modal) {
+            modal.classList.remove("is-active");
+            modal.setAttribute("aria-hidden", "true");
+        }
+        if (iframe) {
+            iframe.src = "";
+        }
+        document.body.style.overflow = "";
+    }
+
+    if (openBtn) {
+        openBtn.addEventListener("click", openModal);
+    }
+    if (closeBtn) {
+        closeBtn.addEventListener("click", closeModal);
+    }
+    if (backdrop) {
+        backdrop.addEventListener("click", closeModal);
+    }
+
+    document.addEventListener("keydown", function (e) {
+        if (e.key === "Escape" && modal && modal.classList.contains("is-active")) {
+            closeModal();
+        }
+    });
+});
+</script>
 {% endblock %}
