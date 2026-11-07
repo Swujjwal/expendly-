@@ -113,3 +113,58 @@ def seed_db():
 
     conn.commit()
     conn.close()
+
+
+# ------------------------------------------------------------------ #
+# User operations                                                     #
+# ------------------------------------------------------------------ #
+
+def get_user_by_email(email):
+    """Retrieve a user row by email (case-insensitive lookup).
+    Returns sqlite3.Row if found, None otherwise.
+    """
+    conn = get_db()
+    cursor = conn.cursor()
+    try:
+        user = cursor.execute(
+            "SELECT * FROM users WHERE LOWER(email) = LOWER(?);",
+            (email.strip(),)
+        ).fetchone()
+        return user
+    finally:
+        conn.close()
+
+
+def get_user_by_id(user_id):
+    """Retrieve a user row by user ID.
+    Returns sqlite3.Row if found, None otherwise.
+    """
+    conn = get_db()
+    cursor = conn.cursor()
+    try:
+        user = cursor.execute(
+            "SELECT * FROM users WHERE id = ?;",
+            (user_id,)
+        ).fetchone()
+        return user
+    finally:
+        conn.close()
+
+
+def create_user(name, email, password_hash):
+    """Insert a new user record into the database.
+    Returns the new user ID on success, or None if the email already exists.
+    """
+    conn = get_db()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            "INSERT INTO users (name, email, password_hash) VALUES (?, ?, ?);",
+            (name.strip(), email.strip().lower(), password_hash)
+        )
+        conn.commit()
+        return cursor.lastrowid
+    except sqlite3.IntegrityError:
+        return None
+    finally:
+        conn.close()
