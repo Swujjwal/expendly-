@@ -168,3 +168,41 @@ def create_user(name, email, password_hash):
         return None
     finally:
         conn.close()
+
+
+def update_user_name(user_id, name):
+    """Update a user's display name. Returns True on success, False otherwise."""
+    conn = get_db()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            "UPDATE users SET name = ? WHERE id = ?;",
+            (name.strip(), user_id)
+        )
+        conn.commit()
+        return cursor.rowcount > 0
+    finally:
+        conn.close()
+
+
+def get_user_stats(user_id):
+    """Calculate summary stats for a user's expenses.
+    Returns a dict with: total_count, total_spent.
+    """
+    conn = get_db()
+    cursor = conn.cursor()
+    try:
+        row = cursor.execute("""
+            SELECT 
+                COUNT(*) as total_count,
+                COALESCE(SUM(amount), 0.0) as total_spent
+            FROM expenses
+            WHERE user_id = ?;
+        """, (user_id,)).fetchone()
+
+        return {
+            "total_count": int(row["total_count"]) if row else 0,
+            "total_spent": float(row["total_spent"]) if row else 0.0
+        }
+    finally:
+        conn.close()

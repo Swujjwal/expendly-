@@ -1,7 +1,10 @@
 import os
 from flask import Flask, render_template, request, redirect, url_for, session
 from werkzeug.security import generate_password_hash, check_password_hash
-from database.db import init_db, seed_db, get_user_by_email, create_user
+from database.db import (
+    init_db, seed_db, get_user_by_email, create_user,
+    get_user_by_id, update_user_name, get_user_stats
+)
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "spendly-dev-secret-key-change-in-production")
@@ -22,13 +25,15 @@ with app.app_context():
 
 @app.route("/")
 def landing():
+    if session.get("user_id"):
+        return redirect(url_for("profile"))
     return render_template("landing.html")
 
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if session.get("user_id"):
-        return redirect(url_for("landing"))
+        return redirect(url_for("profile"))
 
     if request.method == "POST":
         name = request.form.get("name", "").strip()
@@ -98,7 +103,7 @@ def register():
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if session.get("user_id"):
-        return redirect(url_for("landing"))
+        return redirect(url_for("profile"))
 
     if request.method == "POST":
         email = request.form.get("email", "").strip().lower()
@@ -127,7 +132,7 @@ def login():
         session["user_name"] = user["name"]
         session["user_email"] = user["email"]
 
-        return redirect(url_for("landing"))
+        return redirect(url_for("profile"))
 
     return render_template("login.html")
 
@@ -152,9 +157,40 @@ def logout():
     return redirect(url_for("login"))
 
 
-@app.route("/profile")
+@app.route("/profile", methods=["GET", "POST"])
 def profile():
-    return "Profile page — coming in Step 4"
+    user_id = session.get("user_id")
+    if not user_id:
+        return redirect(url_for("login"))
+
+    user = get_user_by_id(user_id)
+    if not user:
+        session.clear()
+        return redirect(url_for("login"))
+
+    stats = get_user_stats(user_id)
+    error = None
+    success = None
+
+    if request.method == "POST":
+        name = request.form.get("name", "").strip()
+        if not name:
+            error = "Name cannot be empty."
+        elif len(name) > 100:
+            error = "Name must not exceed 100 characters."
+        else:
+            update_user_name(user_id, name)
+            session["user_name"] = name
+            user = get_user_by_id(user_id)
+            success = "Profile updated successfully."
+
+    return render_template(
+        "profile.html",
+        user=user,
+        stats=stats,
+        error=error,
+        success=success
+    )
 
 
 @app.route("/expenses/add")

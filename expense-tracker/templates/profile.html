@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block title %}Profile — Spendly{% endblock %}
+
+{% block content %}
+<section class="profile-section">
+    <div class="profile-container">
+
+        <!-- 1. Identity Header Card -->
+        <div class="profile-card profile-header-card">
+            <div class="profile-avatar">
+                <span>{{ user.name[0].upper() }}</span>
+            </div>
+            <div class="profile-identity">
+                <div class="profile-identity-top">
+                    <h1 class="profile-name">{{ user.name }}</h1>
+                    <span class="profile-badge">
+                        <span class="profile-badge-dot"></span>
+                        Active · Free Plan
+                    </span>
+                </div>
+                <p class="profile-email">{{ user.email }}</p>
+                <p class="profile-meta">Member since {{ user.created_at[:10] }}</p>
+            </div>
+        </div>
+
+        <!-- 2. Activity Metrics Grid -->
+        <div class="profile-stats-grid">
+            <div class="profile-stat-card">
+                <span class="stat-label">Total Expenses</span>
+                <span class="stat-value">{{ stats.total_count }}</span>
+                <span class="stat-desc">Transactions logged</span>
+            </div>
+            <div class="profile-stat-card">
+                <span class="stat-label">Lifetime Spending</span>
+                <span class="stat-value">₹{{ "%.2f"|format(stats.total_spent) }}</span>
+                <span class="stat-desc">Across all categories</span>
+            </div>
+            <div class="profile-stat-card">
+                <span class="stat-label">Account Tier</span>
+                <span class="stat-value stat-tier">Free Plan</span>
+                <span class="stat-desc">Full feature access</span>
+            </div>
+        </div>
+
+        <!-- 3. Personal Information Form -->
+        <div class="profile-card">
+            <div class="profile-card-header">
+                <h2 class="profile-card-title">Personal Information</h2>
+                <p class="profile-card-subtitle">Update your profile display name and view account details.</p>
+            </div>
+
+            {% if error %}
+            <div class="auth-error">{{ error }}</div>
+            {% endif %}
+
+            {% if success %}
+            <div class="alert-success">{{ success }}</div>
+            {% endif %}
+
+            <form method="POST" action="{{ url_for('profile') }}" class="profile-form">
+                <div class="form-group">
+                    <label for="name">Full name</label>
+                    <input type="text" id="name" name="name" class="form-input"
+                           value="{{ user.name }}" required autofocus>
+                </div>
+                <div class="form-group">
+                    <label for="email">Email address</label>
+                    <input type="email" id="email" name="email" class="form-input form-input-readonly"
+                           value="{{ user.email }}" readonly>
+                    <span class="form-help">Email address is permanently linked to your account.</span>
+                </div>
+                <button type="submit" class="btn-submit">Save changes</button>
+            </form>
+        </div>
+
+        <!-- 4. Quick Navigation Links -->
+        <div class="profile-footer-links">
+            <a href="{{ url_for('logout') }}" class="text-danger">Log out</a>
+        </div>
+
+    </div>
+</section>
+{% endblock %}
