@@ -65,8 +65,38 @@ def init_db():
 
 
 # ------------------------------------------------------------------ #
-# seed_db()                                                           #
+# seed_db() & seed_user_expenses()                                    #
 # ------------------------------------------------------------------ #
+
+def seed_user_expenses(user_id):
+    """Insert sample expenses for a user across all standard categories."""
+    today = date.today()
+    first_of_month = today.replace(day=1)
+
+    # 8 sample expenses covering all 7 categories
+    expenses = [
+        (user_id, 450.0,  "Food",          (first_of_month + timedelta(days=1)).isoformat(),  "Groceries from BigBasket"),
+        (user_id, 120.0,  "Transport",     (first_of_month + timedelta(days=3)).isoformat(),  "Uber to office"),
+        (user_id, 1500.0, "Bills",         (first_of_month + timedelta(days=5)).isoformat(),  "Electricity bill"),
+        (user_id, 800.0,  "Health",        (first_of_month + timedelta(days=7)).isoformat(),  "Pharmacy — medicines"),
+        (user_id, 350.0,  "Entertainment", (first_of_month + timedelta(days=10)).isoformat(), "Movie tickets"),
+        (user_id, 2200.0, "Shopping",      (first_of_month + timedelta(days=14)).isoformat(), "New headphones"),
+        (user_id, 150.0,  "Other",         (first_of_month + timedelta(days=18)).isoformat(), "Stationery supplies"),
+        (user_id, 600.0,  "Food",          (first_of_month + timedelta(days=21)).isoformat(), "Dinner at restaurant"),
+    ]
+
+    conn = get_db()
+    cursor = conn.cursor()
+    try:
+        cursor.executemany(
+            "INSERT INTO expenses (user_id, amount, category, date, description) VALUES (?, ?, ?, ?, ?);",
+            expenses
+        )
+        conn.commit()
+        return len(expenses)
+    finally:
+        conn.close()
+
 
 def seed_db():
     """Insert demo user and 8 sample expenses on first run only.
@@ -89,30 +119,10 @@ def seed_db():
         ("Demo User", "demo@spendly.com", hashed)
     )
     user_id = cursor.lastrowid
-
-    # Generate dates spread across the current month
-    today = date.today()
-    first_of_month = today.replace(day=1)
-
-    # 8 sample expenses covering all 7 categories
-    expenses = [
-        (user_id, 450.0,  "Food",          (first_of_month + timedelta(days=1)).isoformat(),  "Groceries from BigBasket"),
-        (user_id, 120.0,  "Transport",     (first_of_month + timedelta(days=3)).isoformat(),  "Uber to office"),
-        (user_id, 1500.0, "Bills",         (first_of_month + timedelta(days=5)).isoformat(),  "Electricity bill"),
-        (user_id, 800.0,  "Health",        (first_of_month + timedelta(days=7)).isoformat(),  "Pharmacy — medicines"),
-        (user_id, 350.0,  "Entertainment", (first_of_month + timedelta(days=10)).isoformat(), "Movie tickets"),
-        (user_id, 2200.0, "Shopping",      (first_of_month + timedelta(days=14)).isoformat(), "New headphones"),
-        (user_id, 150.0,  "Other",         (first_of_month + timedelta(days=18)).isoformat(), "Stationery supplies"),
-        (user_id, 600.0,  "Food",          (first_of_month + timedelta(days=21)).isoformat(), "Dinner at restaurant"),
-    ]
-
-    cursor.executemany(
-        "INSERT INTO expenses (user_id, amount, category, date, description) VALUES (?, ?, ?, ?, ?);",
-        expenses
-    )
-
     conn.commit()
     conn.close()
+
+    seed_user_expenses(user_id)
 
 
 # ------------------------------------------------------------------ #
@@ -204,5 +214,38 @@ def get_user_stats(user_id):
             "total_count": int(row["total_count"]) if row else 0,
             "total_spent": float(row["total_spent"]) if row else 0.0
         }
+    finally:
+        conn.close()
+
+
+def get_user_expenses(user_id, limit=None, offset=0):
+    """Retrieve expenses for a user ordered by date descending."""
+    conn = get_db()
+    cursor = conn.cursor()
+    try:
+        query = "SELECT id, user_id, amount, category, date, description, created_at FROM expenses WHERE user_id = ? ORDER BY date DESC, id DESC"
+        params = [user_id]
+        if limit is not None:
+            query += " LIMIT ? OFFSET ?"
+            params.extend([limit, offset])
+        rows = cursor.execute(query, params).fetchall()
+        return [dict(r) for r in rows]
+    finally:
+        conn.close()
+
+
+def get_category_breakdown(user_id):
+    """Retrieve spending total and transaction count grouped by category for a user."""
+    conn = get_db()
+    cursor = conn.cursor()
+    try:
+        rows = cursor.execute("""
+            SELECT category, COUNT(*) as count, COALESCE(SUM(amount), 0.0) as total_amount
+            FROM expenses
+            WHERE user_id = ?
+            GROUP BY category
+            ORDER BY total_amount DESC;
+        """, (user_id,)).fetchall()
+        return [dict(r) for r in rows]
     finally:
         conn.close()

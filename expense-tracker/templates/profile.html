@@ -2,6 +2,10 @@
 
 {% block title %}Profile — Spendly{% endblock %}
 
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css') }}">
+{% endblock %}
+
 {% block content %}
 <section class="profile-section">
     <div class="profile-container">
@@ -24,22 +28,47 @@
             </div>
         </div>
 
-        <!-- 2. Activity Metrics Grid -->
-        <div class="profile-stats-grid">
-            <div class="profile-stat-card">
-                <span class="stat-label">Total Expenses</span>
-                <span class="stat-value">{{ stats.total_count }}</span>
-                <span class="stat-desc">Transactions logged</span>
+        <!-- 2. Financial Overview Mockup Window (Fetched from DB) -->
+        <div class="hero-mockup-window">
+            <div class="window-controls">
+                <span class="window-dot dot-red"></span>
+                <span class="window-dot dot-yellow"></span>
+                <span class="window-dot dot-green"></span>
             </div>
-            <div class="profile-stat-card">
-                <span class="stat-label">Lifetime Spending</span>
-                <span class="stat-value">₹{{ "%.2f"|format(stats.total_spent) }}</span>
-                <span class="stat-desc">Across all categories</span>
+
+            <div class="stat-cards-grid">
+                <div class="mockup-stat-card profile-stat-card">
+                    <span class="stat-card-label stat-label">This month</span>
+                    <span class="stat-card-value stat-value" id="mockupThisMonth">₹{{ "{:,.0f}".format(stats.total_spent) }}</span>
+                    <span class="stat-card-sub text-danger" id="mockupThisMonthSub">+12% vs last</span>
+                </div>
+                <div class="mockup-stat-card profile-stat-card">
+                    <span class="stat-card-label stat-label">Budget left</span>
+                    <span class="stat-card-value stat-value" id="mockupBudgetLeft">₹{{ "{:,.0f}".format(budget_left) }}</span>
+                    <span class="stat-card-sub text-success" id="mockupBudgetPercent">{{ budget_percent }}% remaining</span>
+                </div>
+                <div class="mockup-stat-card profile-stat-card">
+                    <span class="stat-card-label stat-label">Transactions</span>
+                    <span class="stat-card-value stat-value" id="mockupTransactions">{{ stats.total_count }}</span>
+                    <span class="stat-card-sub text-muted">this month</span>
+                </div>
             </div>
-            <div class="profile-stat-card">
-                <span class="stat-label">Account Tier</span>
-                <span class="stat-value stat-tier">Free Plan</span>
-                <span class="stat-desc">Full feature access</span>
+
+            <div class="category-bars-card" id="mockupCategoryBars">
+                {% if categories %}
+                    {% for cat in categories %}
+                    <div class="cat-bar-row">
+                        <span class="cat-bar-name">{{ cat.category }}</span>
+                        <div class="cat-bar-track">
+                            <div class="cat-bar-fill {{ cat.color_class }}" style="width: {{ cat.percentage }}%;"></div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="cat-bar-empty">
+                        <p class="text-muted">No expenses recorded yet. Start tracking to see your category breakdown.</p>
+                    </div>
+                {% endif %}
             </div>
         </div>
 
@@ -81,4 +110,69 @@
 
     </div>
 </section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    fetchExpenseData();
+});
+
+async function fetchExpenseData() {
+    try {
+        const [summaryRes, catRes] = await Promise.all([
+            fetch("{{ url_for('api_stats_summary') }}"),
+            fetch("{{ url_for('api_stats_categories') }}")
+        ]);
+        if (!summaryRes.ok || !catRes.ok) return;
+
+        const summary = await summaryRes.json();
+        const catData = await catRes.json();
+
+        const spentEl = document.getElementById("mockupThisMonth");
+        const countEl = document.getElementById("mockupTransactions");
+        const budgetLeftEl = document.getElementById("mockupBudgetLeft");
+        const budgetPercentEl = document.getElementById("mockupBudgetPercent");
+        const catContainer = document.getElementById("mockupCategoryBars");
+
+        const totalSpent = summary.total_spent !== undefined ? summary.total_spent : 0;
+        const totalCount = summary.total_count !== undefined ? summary.total_count : 0;
+        const budget = 25000;
+        const budgetLeft = Math.max(0, budget - totalSpent);
+        const budgetPercent = Math.round((budgetLeft / budget) * 100);
+
+        if (spentEl) spentEl.textContent = "₹" + Math.round(totalSpent).toLocaleString("en-IN");
+        if (countEl) countEl.textContent = totalCount;
+        if (budgetLeftEl) budgetLeftEl.textContent = "₹" + Math.round(budgetLeft).toLocaleString("en-IN");
+        if (budgetPercentEl) budgetPercentEl.textContent = budgetPercent + "% remaining";
+
+        if (catContainer && Array.isArray(catData.categories)) {
+            const colorMap = {
+                "Food": "bar-orange",
+                "Transport": "bar-blue",
+                "Bills": "bar-purple",
+                "Health": "bar-green",
+                "Entertainment": "bar-teal",
+                "Shopping": "bar-pink",
+                "Other": "bar-gray"
+            };
+
+            if (catData.categories.length === 0) {
+                catContainer.innerHTML = '<div class="cat-bar-empty"><p class="text-muted">No expenses recorded yet. Start tracking to see your category breakdown.</p></div>';
+            } else {
+                catContainer.innerHTML = catData.categories.map(cat => `
+                    <div class="cat-bar-row">
+                        <span class="cat-bar-name">${cat.category}</span>
+                        <div class="cat-bar-track">
+                            <div class="cat-bar-fill ${colorMap[cat.category] || 'bar-orange'}" style="width: ${cat.percentage}%;"></div>
+                        </div>
+                    </div>
+                `).join("");
+            }
+        }
+    } catch (err) {
+        console.error("Error fetching expense data:", err);
+    }
+}
+</script>
 {% endblock %}

@@ -242,6 +242,27 @@
     background: #7e76db;
 }
 
+.bar-green {
+    background: #10b981;
+}
+
+.bar-pink {
+    background: #ec4899;
+}
+
+.bar-teal {
+    background: #06b6d4;
+}
+
+.bar-gray {
+    background: #9ca3af;
+}
+
+.cat-bar-empty {
+    text-align: center;
+    padding: 1.5rem 1rem;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
     .hero {

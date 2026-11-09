@@ -1,9 +1,10 @@
 import os
-from flask import Flask, render_template, request, redirect, url_for, session
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
 from database.db import (
     init_db, seed_db, get_user_by_email, create_user,
-    get_user_by_id, update_user_name, get_user_stats
+    get_user_by_id, update_user_name, get_user_stats,
+    get_user_expenses, get_category_breakdown
 )
 
 app = Flask(__name__)
@@ -168,7 +169,6 @@ def profile():
         session.clear()
         return redirect(url_for("login"))
 
-    stats = get_user_stats(user_id)
     error = None
     success = None
 
@@ -184,10 +184,36 @@ def profile():
             user = get_user_by_id(user_id)
             success = "Profile updated successfully."
 
+    stats = get_user_stats(user_id)
+    categories = get_category_breakdown(user_id)
+    total_spent = stats["total_spent"]
+
+    color_map = {
+        "Food": "bar-orange",
+        "Transport": "bar-blue",
+        "Bills": "bar-purple",
+        "Health": "bar-green",
+        "Entertainment": "bar-teal",
+        "Shopping": "bar-pink",
+        "Other": "bar-gray",
+    }
+
+    for c in categories:
+        c["percentage"] = round((c["total_amount"] / total_spent * 100), 1) if total_spent > 0 else 0.0
+        c["color_class"] = color_map.get(c["category"], "bar-orange")
+
+    monthly_budget = 25000.0
+    budget_left = max(0.0, monthly_budget - total_spent)
+    budget_percent = round((budget_left / monthly_budget) * 100) if monthly_budget > 0 else 0
+
     return render_template(
         "profile.html",
         user=user,
         stats=stats,
+        categories=categories,
+        monthly_budget=monthly_budget,
+        budget_left=budget_left,
+        budget_percent=budget_percent,
         error=error,
         success=success
     )
@@ -206,6 +232,58 @@ def edit_expense(id):
 @app.route("/expenses/<int:id>/delete")
 def delete_expense(id):
     return "Delete expense — coming in Step 9"
+
+
+# ------------------------------------------------------------------ #
+# SECTION 1: Transaction History Routes (Subagent 1)                 #
+# ------------------------------------------------------------------ #
+@app.route("/api/expenses", methods=["GET"])
+def api_expenses():
+    user_id = session.get("user_id")
+    if not user_id:
+        return jsonify({"error": "Authentication required"}), 401
+
+    limit = request.args.get("limit", type=int)
+    offset = request.args.get("offset", default=0, type=int)
+
+    expenses = get_user_expenses(user_id, limit=limit, offset=offset)
+    return jsonify({"expenses": expenses, "count": len(expenses)})
+
+
+# ------------------------------------------------------------------ #
+# SECTION 2: Summary Stats Routes (Subagent 2)                       #
+# ------------------------------------------------------------------ #
+@app.route("/api/stats/summary", methods=["GET"])
+def api_stats_summary():
+    user_id = session.get("user_id")
+    if not user_id:
+        return jsonify({"error": "Authentication required"}), 401
+
+    stats = get_user_stats(user_id)
+    avg_spent = round(stats["total_spent"] / stats["total_count"], 2) if stats["total_count"] > 0 else 0.0
+
+    return jsonify({
+        "total_count": stats["total_count"],
+        "total_spent": stats["total_spent"],
+        "average_spent": avg_spent
+    })
+
+
+# ------------------------------------------------------------------ #
+# SECTION 3: Category Breakdown Routes (Subagent 3)                  #
+# ------------------------------------------------------------------ #
+@app.route("/api/stats/categories", methods=["GET"])
+def api_stats_categories():
+    user_id = session.get("user_id")
+    if not user_id:
+        return jsonify({"error": "Authentication required"}), 401
+
+    categories = get_category_breakdown(user_id)
+    total_spent = sum(c["total_amount"] for c in categories)
+    for c in categories:
+        c["percentage"] = round((c["total_amount"] / total_spent * 100), 1) if total_spent > 0 else 0.0
+
+    return jsonify({"categories": categories, "total_spent": total_spent})
 
 
 if __name__ == "__main__":
