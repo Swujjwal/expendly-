@@ -2,80 +2,105 @@
 
 {% block title %}Profile — Spendly{% endblock %}
 
-{% block head %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css') }}">
-{% endblock %}
-
 {% block content %}
-<section class="profile-section">
-    <div class="profile-container">
+<section class="profile-dashboard-section profile-section">
+    <div class="profile-dashboard-container profile-container">
 
         <!-- 1. Identity Header Card -->
-        <div class="profile-card profile-header-card">
-            <div class="profile-avatar">
+        <div class="profile-user-card profile-card profile-header-card">
+            <div class="profile-user-avatar profile-avatar">
                 <span>{{ user.name[0].upper() }}</span>
             </div>
-            <div class="profile-identity">
-                <div class="profile-identity-top">
-                    <h1 class="profile-name">{{ user.name }}</h1>
-                    <span class="profile-badge">
-                        <span class="profile-badge-dot"></span>
-                        Active · Free Plan
-                    </span>
-                </div>
-                <p class="profile-email">{{ user.email }}</p>
-                <p class="profile-meta">Member since {{ user.created_at[:10] }}</p>
+            <div class="profile-user-info profile-identity">
+                <h1 class="profile-user-name profile-name">{{ user.name }}</h1>
+                <p class="profile-user-email profile-email">{{ user.email }}</p>
+                <p class="profile-user-member profile-meta">{{ member_since }}</p>
             </div>
         </div>
 
-        <!-- 2. Financial Overview Mockup Window (Fetched from DB) -->
-        <div class="hero-mockup-window">
-            <div class="window-controls">
-                <span class="window-dot dot-red"></span>
-                <span class="window-dot dot-yellow"></span>
-                <span class="window-dot dot-green"></span>
+        <!-- 2. Three Metric Stat Cards -->
+        <div class="profile-metrics-row profile-stats-grid">
+            <!-- Metric 1: TOTAL SPENT -->
+            <div class="profile-metric-box profile-stat-card">
+                <span class="metric-box-title stat-label">TOTAL SPENT</span>
+                <span class="metric-box-value stat-value" id="statTotalSpent">₹{{ "{:,.2f}".format(stats.total_spent) }}</span>
+            </div>
+            <!-- Metric 2: TRANSACTIONS -->
+            <div class="profile-metric-box profile-stat-card">
+                <span class="metric-box-title stat-label">TRANSACTIONS</span>
+                <span class="metric-box-value stat-value" id="statTransactions">{{ stats.total_count }}</span>
+            </div>
+            <!-- Metric 3: TOP CATEGORY -->
+            <div class="profile-metric-box profile-stat-card">
+                <span class="metric-box-title stat-label">TOP CATEGORY</span>
+                <span class="metric-box-value stat-value" id="statTopCategory">{{ top_category }}</span>
+            </div>
+        </div>
+
+        <!-- 3. Dashboard Main Split Grid (Recent Transactions & By Category) -->
+        <div class="profile-dashboard-grid">
+            <!-- Left Card: Recent Transactions -->
+            <div class="dashboard-panel-card">
+                <h2 class="panel-card-title">Recent Transactions</h2>
+                <table class="recent-tx-table">
+                    <thead>
+                        <tr>
+                            <th>DATE</th>
+                            <th>DESCRIPTION</th>
+                            <th>CATEGORY</th>
+                            <th class="th-amount">AMOUNT</th>
+                        </tr>
+                    </thead>
+                    <tbody id="recentTransactionsBody">
+                        {% if recent_expenses %}
+                            {% for exp in recent_expenses %}
+                            <tr>
+                                <td class="td-date">{{ exp.formatted_date }}</td>
+                                <td class="td-desc">{{ exp.description or '—' }}</td>
+                                <td class="td-category">
+                                    <span class="category-pill {{ exp.badge_class }}">{{ exp.category }}</span>
+                                </td>
+                                <td class="td-amount">₹{{ "{:,.2f}".format(exp.amount) }}</td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="4" class="text-center text-muted" style="padding: 2rem 0; text-align: center;">No recent transactions found.</td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
             </div>
 
-            <div class="stat-cards-grid">
-                <div class="mockup-stat-card profile-stat-card">
-                    <span class="stat-card-label stat-label">This month</span>
-                    <span class="stat-card-value stat-value" id="mockupThisMonth">₹{{ "{:,.0f}".format(stats.total_spent) }}</span>
-                    <span class="stat-card-sub text-danger" id="mockupThisMonthSub">+12% vs last</span>
-                </div>
-                <div class="mockup-stat-card profile-stat-card">
-                    <span class="stat-card-label stat-label">Budget left</span>
-                    <span class="stat-card-value stat-value" id="mockupBudgetLeft">₹{{ "{:,.0f}".format(budget_left) }}</span>
-                    <span class="stat-card-sub text-success" id="mockupBudgetPercent">{{ budget_percent }}% remaining</span>
-                </div>
-                <div class="mockup-stat-card profile-stat-card">
-                    <span class="stat-card-label stat-label">Transactions</span>
-                    <span class="stat-card-value stat-value" id="mockupTransactions">{{ stats.total_count }}</span>
-                    <span class="stat-card-sub text-muted">this month</span>
-                </div>
-            </div>
-
-            <div class="category-bars-card" id="mockupCategoryBars">
-                {% if categories %}
-                    {% for cat in categories %}
-                    <div class="cat-bar-row">
-                        <span class="cat-bar-name">{{ cat.category }}</span>
-                        <div class="cat-bar-track">
-                            <div class="cat-bar-fill {{ cat.color_class }}" style="width: {{ cat.percentage }}%;"></div>
+            <!-- Right Card: By Category Graphs -->
+            <div class="dashboard-panel-card">
+                <h2 class="panel-card-title">By Category</h2>
+                <div class="category-breakdown-list" id="categoryBreakdownList">
+                    {% if categories %}
+                        {% for cat in categories %}
+                        <div class="category-breakdown-item">
+                            <div class="cat-item-header">
+                                <span class="cat-item-name">{{ cat.category }}</span>
+                                <span class="cat-item-amount">₹{{ "{:,.2f}".format(cat.total_amount) }}</span>
+                            </div>
+                            <div class="cat-item-track">
+                                <div class="cat-item-bar {{ cat.bar_class }}" style="width: {{ cat.percentage }}%;"></div>
+                            </div>
                         </div>
-                    </div>
-                    {% endfor %}
-                {% else %}
-                    <div class="cat-bar-empty">
-                        <p class="text-muted">No expenses recorded yet. Start tracking to see your category breakdown.</p>
-                    </div>
-                {% endif %}
+                        {% endfor %}
+                    {% else %}
+                        <div class="dashboard-empty-state">
+                            <p class="text-muted">No category data available yet.</p>
+                        </div>
+                    {% endif %}
+                </div>
             </div>
         </div>
 
-        <!-- 3. Personal Information Form -->
-        <div class="profile-card">
+        <!-- 4. Account Settings / Personal Information Form -->
+        <div class="profile-settings-card profile-card">
             <div class="profile-card-header">
-                <h2 class="profile-card-title">Personal Information</h2>
+                <h3 class="profile-card-title">Personal Information</h3>
                 <p class="profile-card-subtitle">Update your profile display name and view account details.</p>
             </div>
 
@@ -91,7 +116,7 @@
                 <div class="form-group">
                     <label for="name">Full name</label>
                     <input type="text" id="name" name="name" class="form-input"
-                           value="{{ user.name }}" required autofocus>
+                           value="{{ user.name }}" required>
                 </div>
                 <div class="form-group">
                     <label for="email">Email address</label>
@@ -103,9 +128,9 @@
             </form>
         </div>
 
-        <!-- 4. Quick Navigation Links -->
+        <!-- 5. Quick Navigation Footer Links -->
         <div class="profile-footer-links">
-            <a href="{{ url_for('logout') }}" class="text-danger">Log out</a>
+            <a href="{{ url_for('logout') }}" class="text-danger">Sign out</a>
         </div>
 
     </div>
@@ -115,63 +140,129 @@
 {% block scripts %}
 <script>
 document.addEventListener("DOMContentLoaded", function () {
-    fetchExpenseData();
+    fetchProfileDashboardData();
 });
 
-async function fetchExpenseData() {
+async function fetchProfileDashboardData() {
     try {
-        const [summaryRes, catRes] = await Promise.all([
-            fetch("{{ url_for('api_stats_summary') }}"),
-            fetch("{{ url_for('api_stats_categories') }}")
+        const [txRes, catRes, sumRes] = await Promise.all([
+            fetch("{{ url_for('api_expenses') }}?limit=5"),
+            fetch("{{ url_for('api_stats_categories') }}"),
+            fetch("{{ url_for('api_stats_summary') }}")
         ]);
-        if (!summaryRes.ok || !catRes.ok) return;
 
-        const summary = await summaryRes.json();
-        const catData = await catRes.json();
+        if (txRes.ok) {
+            const txData = await txRes.json();
+            renderRecentTransactions(txData.expenses || []);
+        }
 
-        const spentEl = document.getElementById("mockupThisMonth");
-        const countEl = document.getElementById("mockupTransactions");
-        const budgetLeftEl = document.getElementById("mockupBudgetLeft");
-        const budgetPercentEl = document.getElementById("mockupBudgetPercent");
-        const catContainer = document.getElementById("mockupCategoryBars");
+        if (catRes.ok) {
+            const catData = await catRes.json();
+            renderCategoryGraphs(catData.categories || []);
+        }
 
-        const totalSpent = summary.total_spent !== undefined ? summary.total_spent : 0;
-        const totalCount = summary.total_count !== undefined ? summary.total_count : 0;
-        const budget = 25000;
-        const budgetLeft = Math.max(0, budget - totalSpent);
-        const budgetPercent = Math.round((budgetLeft / budget) * 100);
-
-        if (spentEl) spentEl.textContent = "₹" + Math.round(totalSpent).toLocaleString("en-IN");
-        if (countEl) countEl.textContent = totalCount;
-        if (budgetLeftEl) budgetLeftEl.textContent = "₹" + Math.round(budgetLeft).toLocaleString("en-IN");
-        if (budgetPercentEl) budgetPercentEl.textContent = budgetPercent + "% remaining";
-
-        if (catContainer && Array.isArray(catData.categories)) {
-            const colorMap = {
-                "Food": "bar-orange",
-                "Transport": "bar-blue",
-                "Bills": "bar-purple",
-                "Health": "bar-green",
-                "Entertainment": "bar-teal",
-                "Shopping": "bar-pink",
-                "Other": "bar-gray"
-            };
-
-            if (catData.categories.length === 0) {
-                catContainer.innerHTML = '<div class="cat-bar-empty"><p class="text-muted">No expenses recorded yet. Start tracking to see your category breakdown.</p></div>';
-            } else {
-                catContainer.innerHTML = catData.categories.map(cat => `
-                    <div class="cat-bar-row">
-                        <span class="cat-bar-name">${cat.category}</span>
-                        <div class="cat-bar-track">
-                            <div class="cat-bar-fill ${colorMap[cat.category] || 'bar-orange'}" style="width: ${cat.percentage}%;"></div>
-                        </div>
-                    </div>
-                `).join("");
-            }
+        if (sumRes.ok) {
+            const sumData = await sumRes.json();
+            renderSummaryStats(sumData);
         }
     } catch (err) {
-        console.error("Error fetching expense data:", err);
+        console.error("Error fetching dashboard data from database:", err);
+    }
+}
+
+function formatDisplayDate(dateStr) {
+    if (!dateStr) return "—";
+    const parts = String(dateStr).slice(0, 10).split("-");
+    if (parts.length === 3) {
+        const year = parts[0];
+        const monthNum = parseInt(parts[1], 10) - 1;
+        const day = parts[2].padStart(2, "0");
+        const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        if (monthNum >= 0 && monthNum < 12) {
+            return `${day} ${months[monthNum]} ${year}`;
+        }
+    }
+    return dateStr;
+}
+
+function escapeHtml(text) {
+    if (text === null || text === undefined) return "";
+    return String(text)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+function renderRecentTransactions(expenses) {
+    const tbody = document.getElementById("recentTransactionsBody");
+    if (!tbody) return;
+
+    if (!expenses || expenses.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted" style="padding: 2rem 0; text-align: center;">No recent transactions found.</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = expenses.map(function (exp) {
+        const formattedDate = formatDisplayDate(exp.date);
+        const catClass = "cat-badge-" + (exp.category ? exp.category.toLowerCase() : "other");
+        const formattedAmount = "₹" + Number(exp.amount).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        const description = exp.description ? escapeHtml(exp.description) : "—";
+        const category = exp.category ? escapeHtml(exp.category) : "Other";
+
+        return `<tr>
+            <td class="td-date">${formattedDate}</td>
+            <td class="td-desc">${description}</td>
+            <td class="td-category">
+                <span class="category-pill ${catClass}">${category}</span>
+            </td>
+            <td class="td-amount">${formattedAmount}</td>
+        </tr>`;
+    }).join("");
+}
+
+function renderCategoryGraphs(categories) {
+    const container = document.getElementById("categoryBreakdownList");
+    if (!container) return;
+
+    if (!categories || categories.length === 0) {
+        container.innerHTML = '<div class="dashboard-empty-state"><p class="text-muted">No category data available yet.</p></div>';
+        return;
+    }
+
+    container.innerHTML = categories.map(function (cat) {
+        const catName = escapeHtml(cat.category || "Other");
+        const barClass = "cat-bar-" + (cat.category ? cat.category.toLowerCase() : "other");
+        const formattedAmount = "₹" + Number(cat.total_amount).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        const percentage = Math.min(100, Math.max(0, cat.percentage || 0));
+
+        return `<div class="category-breakdown-item">
+            <div class="cat-item-header">
+                <span class="cat-item-name">${catName}</span>
+                <span class="cat-item-amount">${formattedAmount}</span>
+            </div>
+            <div class="cat-item-track">
+                <div class="cat-item-bar ${barClass}" style="width: ${percentage}%;"></div>
+            </div>
+        </div>`;
+    }).join("");
+
+    const topCatEl = document.getElementById("statTopCategory");
+    if (topCatEl && categories.length > 0) {
+        topCatEl.textContent = categories[0].category;
+    }
+}
+
+function renderSummaryStats(sumData) {
+    const totalSpentEl = document.getElementById("statTotalSpent");
+    const countEl = document.getElementById("statTransactions");
+
+    if (totalSpentEl && sumData.total_spent !== undefined) {
+        totalSpentEl.textContent = "₹" + Number(sumData.total_spent).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+    if (countEl && sumData.total_count !== undefined) {
+        countEl.textContent = sumData.total_count;
     }
 }
 </script>

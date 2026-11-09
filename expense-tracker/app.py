@@ -1,4 +1,5 @@
 import os
+from datetime import datetime
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
 from database.db import (
@@ -186,34 +187,47 @@ def profile():
 
     stats = get_user_stats(user_id)
     categories = get_category_breakdown(user_id)
+    recent_raw = get_user_expenses(user_id, limit=5)
     total_spent = stats["total_spent"]
 
-    color_map = {
-        "Food": "bar-orange",
-        "Transport": "bar-blue",
-        "Bills": "bar-purple",
-        "Health": "bar-green",
-        "Entertainment": "bar-teal",
-        "Shopping": "bar-pink",
-        "Other": "bar-gray",
-    }
+    # Member since formatting
+    member_since = "Member"
+    if user and "created_at" in user.keys() and user["created_at"]:
+        try:
+            member_since = datetime.fromisoformat(str(user["created_at"])[:10]).strftime("Member since %B %Y")
+        except Exception:
+            member_since = f"Member since {str(user['created_at'])[:10]}"
 
+    # Top category
+    top_category = categories[0]["category"] if categories else "—"
+
+    # Category breakdown formatting
+    formatted_categories = []
     for c in categories:
-        c["percentage"] = round((c["total_amount"] / total_spent * 100), 1) if total_spent > 0 else 0.0
-        c["color_class"] = color_map.get(c["category"], "bar-orange")
+        cat_dict = dict(c)
+        cat_dict["percentage"] = round((cat_dict["total_amount"] / total_spent * 100), 1) if total_spent > 0 else 0.0
+        cat_dict["bar_class"] = f"cat-bar-{cat_dict['category'].lower()}"
+        formatted_categories.append(cat_dict)
 
-    monthly_budget = 25000.0
-    budget_left = max(0.0, monthly_budget - total_spent)
-    budget_percent = round((budget_left / monthly_budget) * 100) if monthly_budget > 0 else 0
+    # Recent transactions formatting
+    recent_expenses = []
+    for exp in recent_raw:
+        exp_dict = dict(exp)
+        try:
+            exp_dict["formatted_date"] = datetime.fromisoformat(str(exp_dict.get("date"))[:10]).strftime("%d %b %Y")
+        except Exception:
+            exp_dict["formatted_date"] = str(exp_dict.get("date"))
+        exp_dict["badge_class"] = f"cat-badge-{exp_dict.get('category', 'other').lower()}"
+        recent_expenses.append(exp_dict)
 
     return render_template(
         "profile.html",
         user=user,
+        member_since=member_since,
         stats=stats,
-        categories=categories,
-        monthly_budget=monthly_budget,
-        budget_left=budget_left,
-        budget_percent=budget_percent,
+        top_category=top_category,
+        categories=formatted_categories,
+        recent_expenses=recent_expenses,
         error=error,
         success=success
     )
