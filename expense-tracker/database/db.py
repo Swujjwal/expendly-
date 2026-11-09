@@ -195,21 +195,29 @@ def update_user_name(user_id, name):
         conn.close()
 
 
-def get_user_stats(user_id):
-    """Calculate summary stats for a user's expenses.
+def get_user_stats(user_id, start_date=None, end_date=None):
+    """Calculate summary stats for a user's expenses with optional date range.
     Returns a dict with: total_count, total_spent.
     """
     conn = get_db()
     cursor = conn.cursor()
     try:
-        row = cursor.execute("""
+        query = """
             SELECT 
                 COUNT(*) as total_count,
                 COALESCE(SUM(amount), 0.0) as total_spent
             FROM expenses
-            WHERE user_id = ?;
-        """, (user_id,)).fetchone()
+            WHERE user_id = ?
+        """
+        params = [user_id]
+        if start_date:
+            query += " AND date >= ?"
+            params.append(start_date)
+        if end_date:
+            query += " AND date <= ?"
+            params.append(end_date)
 
+        row = cursor.execute(query, params).fetchone()
         return {
             "total_count": int(row["total_count"]) if row else 0,
             "total_spent": float(row["total_spent"]) if row else 0.0
@@ -218,34 +226,51 @@ def get_user_stats(user_id):
         conn.close()
 
 
-def get_user_expenses(user_id, limit=None, offset=0):
-    """Retrieve expenses for a user ordered by date descending."""
+def get_user_expenses(user_id, limit=None, offset=0, start_date=None, end_date=None):
+    """Retrieve expenses for a user ordered by date descending with optional date range."""
     conn = get_db()
     cursor = conn.cursor()
     try:
-        query = "SELECT id, user_id, amount, category, date, description, created_at FROM expenses WHERE user_id = ? ORDER BY date DESC, id DESC"
+        query = "SELECT id, user_id, amount, category, date, description, created_at FROM expenses WHERE user_id = ?"
         params = [user_id]
+        if start_date:
+            query += " AND date >= ?"
+            params.append(start_date)
+        if end_date:
+            query += " AND date <= ?"
+            params.append(end_date)
+
+        query += " ORDER BY date DESC, id DESC"
         if limit is not None:
             query += " LIMIT ? OFFSET ?"
             params.extend([limit, offset])
+
         rows = cursor.execute(query, params).fetchall()
         return [dict(r) for r in rows]
     finally:
         conn.close()
 
 
-def get_category_breakdown(user_id):
-    """Retrieve spending total and transaction count grouped by category for a user."""
+def get_category_breakdown(user_id, start_date=None, end_date=None):
+    """Retrieve spending total and transaction count grouped by category for a user with optional date range."""
     conn = get_db()
     cursor = conn.cursor()
     try:
-        rows = cursor.execute("""
+        query = """
             SELECT category, COUNT(*) as count, COALESCE(SUM(amount), 0.0) as total_amount
             FROM expenses
             WHERE user_id = ?
-            GROUP BY category
-            ORDER BY total_amount DESC;
-        """, (user_id,)).fetchall()
+        """
+        params = [user_id]
+        if start_date:
+            query += " AND date >= ?"
+            params.append(start_date)
+        if end_date:
+            query += " AND date <= ?"
+            params.append(end_date)
+
+        query += " GROUP BY category ORDER BY total_amount DESC;"
+        rows = cursor.execute(query, params).fetchall()
         return [dict(r) for r in rows]
     finally:
         conn.close()

@@ -18,6 +18,34 @@
             </div>
         </div>
 
+        <!-- Date Range Filter Card -->
+        <div class="profile-filter-card">
+            <div class="filter-presets-group">
+                <a href="?period=this_month" class="filter-pill {% if selected_period == 'this_month' %}active{% endif %}" data-period="this_month">This Month</a>
+                <a href="?period=last_30_days" class="filter-pill {% if selected_period == 'last_30_days' %}active{% endif %}" data-period="last_30_days">Last 30 Days</a>
+                <a href="?period=last_month" class="filter-pill {% if selected_period == 'last_month' %}active{% endif %}" data-period="last_month">Last Month</a>
+                <a href="?period=all_time" class="filter-pill {% if selected_period == 'all_time' %}active{% endif %}" data-period="all_time">All Time</a>
+                <button type="button" class="filter-pill filter-custom-trigger {% if selected_period == 'custom' %}active{% endif %}" id="customRangeToggle">Custom</button>
+            </div>
+
+            <!-- Custom Date Range Form (collapsible / expandable) -->
+            <form method="GET" action="{{ url_for('profile') }}" class="custom-range-form {% if selected_period != 'custom' %}is-hidden{% endif %}" id="customRangeForm">
+                <input type="hidden" name="period" value="custom">
+                <div class="custom-range-inputs">
+                    <div class="date-field">
+                        <label for="startDate">From</label>
+                        <input type="date" id="startDate" name="start_date" value="{{ start_date or '' }}" required>
+                    </div>
+                    <div class="date-field">
+                        <label for="endDate">To</label>
+                        <input type="date" id="endDate" name="end_date" value="{{ end_date or '' }}" required>
+                    </div>
+                    <button type="submit" class="btn-filter-apply">Apply</button>
+                    <a href="{{ url_for('profile') }}" class="btn-filter-reset">Reset</a>
+                </div>
+            </form>
+        </div>
+
         <!-- 2. Three Metric Stat Cards -->
         <div class="profile-metrics-row profile-stats-grid">
             <!-- Metric 1: TOTAL SPENT -->
@@ -65,7 +93,7 @@
                             {% endfor %}
                         {% else %}
                             <tr>
-                                <td colspan="4" class="text-center text-muted" style="padding: 2rem 0; text-align: center;">No recent transactions found.</td>
+                                <td colspan="4" class="text-center text-muted" style="padding: 2rem 0; text-align: center;">No recent transactions found for this date range.</td>
                             </tr>
                         {% endif %}
                     </tbody>
@@ -90,7 +118,7 @@
                         {% endfor %}
                     {% else %}
                         <div class="dashboard-empty-state">
-                            <p class="text-muted">No category data available yet.</p>
+                            <p class="text-muted">No category spending recorded for this date range.</p>
                         </div>
                     {% endif %}
                 </div>
@@ -139,16 +167,134 @@
 
 {% block scripts %}
 <script>
+let currentStartDate = "{{ start_date or '' }}";
+let currentEndDate = "{{ end_date or '' }}";
+let currentPeriod = "{{ selected_period or 'this_month' }}";
+
 document.addEventListener("DOMContentLoaded", function () {
-    fetchProfileDashboardData();
+    setupFilterControls();
+    fetchProfileDashboardData(currentStartDate, currentEndDate);
 });
 
-async function fetchProfileDashboardData() {
+function setupFilterControls() {
+    const customToggle = document.getElementById("customRangeToggle");
+    const customForm = document.getElementById("customRangeForm");
+    const startDateInput = document.getElementById("startDate");
+    const endDateInput = document.getElementById("endDate");
+
+    if (customToggle && customForm) {
+        customToggle.addEventListener("click", function (e) {
+            e.preventDefault();
+            const isCurrentlyHidden = customForm.classList.contains("is-hidden");
+            if (isCurrentlyHidden) {
+                customForm.classList.remove("is-hidden");
+                document.querySelectorAll(".filter-presets-group .filter-pill").forEach(el => el.classList.remove("active"));
+                customToggle.classList.add("active");
+                if (startDateInput) startDateInput.focus();
+            } else {
+                customForm.classList.add("is-hidden");
+                customToggle.classList.remove("active");
+            }
+        });
+    }
+
+    // Handle preset pill clicks
+    const presetPills = document.querySelectorAll(".filter-presets-group a.filter-pill");
+    presetPills.forEach(pill => {
+        pill.addEventListener("click", async function (e) {
+            e.preventDefault();
+            const period = this.getAttribute("data-period");
+            if (!period) return;
+
+            // Update active pill UI
+            document.querySelectorAll(".filter-presets-group .filter-pill").forEach(el => el.classList.remove("active"));
+            this.classList.add("active");
+
+            if (customForm) {
+                customForm.classList.add("is-hidden");
+            }
+
+            const dates = computePresetDates(period);
+            currentStartDate = dates.startDate;
+            currentEndDate = dates.endDate;
+            currentPeriod = period;
+
+            if (startDateInput) startDateInput.value = currentStartDate || "";
+            if (endDateInput) endDateInput.value = currentEndDate || "";
+
+            const newUrl = period === "this_month" ? window.location.pathname : `?period=${encodeURIComponent(period)}`;
+            window.history.pushState({ period: period }, "", newUrl);
+
+            await fetchProfileDashboardData(currentStartDate, currentEndDate);
+        });
+    });
+
+    // Handle custom form submit
+    if (customForm) {
+        customForm.addEventListener("submit", async function (e) {
+            e.preventDefault();
+            let startVal = startDateInput ? startDateInput.value.trim() : "";
+            let endVal = endDateInput ? endDateInput.value.trim() : "";
+
+            if (!startVal || !endVal) return;
+
+            // Auto-swap if start > end
+            if (startVal > endVal) {
+                const tmp = startVal;
+                startVal = endVal;
+                endVal = tmp;
+                if (startDateInput) startDateInput.value = startVal;
+                if (endDateInput) endDateInput.value = endVal;
+            }
+
+            currentStartDate = startVal;
+            currentEndDate = endVal;
+            currentPeriod = "custom";
+
+            document.querySelectorAll(".filter-presets-group .filter-pill").forEach(el => el.classList.remove("active"));
+            if (customToggle) customToggle.classList.add("active");
+
+            const newUrl = `?period=custom&start_date=${encodeURIComponent(startVal)}&end_date=${encodeURIComponent(endVal)}`;
+            window.history.pushState({ period: "custom", start: startVal, end: endVal }, "", newUrl);
+
+            await fetchProfileDashboardData(currentStartDate, currentEndDate);
+        });
+    }
+}
+
+function computePresetDates(period) {
+    const today = new Date();
+    const pad = n => String(n).padStart(2, "0");
+    const toIso = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+
+    if (period === "this_month") {
+        const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+        return { startDate: toIso(firstDay), endDate: toIso(today) };
+    } else if (period === "last_30_days") {
+        const prior30 = new Date(today);
+        prior30.setDate(today.getDate() - 30);
+        return { startDate: toIso(prior30), endDate: toIso(today) };
+    } else if (period === "last_month") {
+        const firstDayPrev = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+        const lastDayPrev = new Date(today.getFullYear(), today.getMonth(), 0);
+        return { startDate: toIso(firstDayPrev), endDate: toIso(lastDayPrev) };
+    } else if (period === "all_time") {
+        return { startDate: null, endDate: null };
+    }
+    return { startDate: null, endDate: null };
+}
+
+async function fetchProfileDashboardData(startDate, endDate) {
     try {
+        const params = new URLSearchParams();
+        if (startDate) params.append("start_date", startDate);
+        if (endDate) params.append("end_date", endDate);
+        const qStr = params.toString() ? `?${params.toString()}` : "";
+
         const [txRes, catRes, sumRes] = await Promise.all([
-            fetch("{{ url_for('api_expenses') }}?limit=5"),
-            fetch("{{ url_for('api_stats_categories') }}"),
-            fetch("{{ url_for('api_stats_summary') }}")
+            fetch(`{{ url_for('api_expenses') }}${qStr ? qStr + '&limit=5' : '?limit=5'}`),
+            fetch(`{{ url_for('api_stats_categories') }}${qStr}`),
+            fetch(`{{ url_for('api_stats_summary') }}${qStr}`)
         ]);
 
         if (txRes.ok) {
@@ -200,7 +346,7 @@ function renderRecentTransactions(expenses) {
     if (!tbody) return;
 
     if (!expenses || expenses.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted" style="padding: 2rem 0; text-align: center;">No recent transactions found.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted" style="padding: 2rem 0; text-align: center;">No recent transactions found for this date range.</td></tr>';
         return;
     }
 
@@ -224,10 +370,15 @@ function renderRecentTransactions(expenses) {
 
 function renderCategoryGraphs(categories) {
     const container = document.getElementById("categoryBreakdownList");
+    const topCatEl = document.getElementById("statTopCategory");
+
     if (!container) return;
 
     if (!categories || categories.length === 0) {
-        container.innerHTML = '<div class="dashboard-empty-state"><p class="text-muted">No category data available yet.</p></div>';
+        container.innerHTML = '<div class="dashboard-empty-state"><p class="text-muted">No category spending recorded for this date range.</p></div>';
+        if (topCatEl) {
+            topCatEl.textContent = "—";
+        }
         return;
     }
 
@@ -248,9 +399,8 @@ function renderCategoryGraphs(categories) {
         </div>`;
     }).join("");
 
-    const topCatEl = document.getElementById("statTopCategory");
-    if (topCatEl && categories.length > 0) {
-        topCatEl.textContent = categories[0].category;
+    if (topCatEl) {
+        topCatEl.textContent = categories[0].category || "—";
     }
 }
 
@@ -258,12 +408,15 @@ function renderSummaryStats(sumData) {
     const totalSpentEl = document.getElementById("statTotalSpent");
     const countEl = document.getElementById("statTransactions");
 
-    if (totalSpentEl && sumData.total_spent !== undefined) {
-        totalSpentEl.textContent = "₹" + Number(sumData.total_spent).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    if (totalSpentEl) {
+        const total = (sumData && sumData.total_spent !== undefined) ? sumData.total_spent : 0;
+        totalSpentEl.textContent = "₹" + Number(total).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
-    if (countEl && sumData.total_count !== undefined) {
-        countEl.textContent = sumData.total_count;
+    if (countEl) {
+        const count = (sumData && sumData.total_count !== undefined) ? sumData.total_count : 0;
+        countEl.textContent = count;
     }
 }
 </script>
 {% endblock %}
+S

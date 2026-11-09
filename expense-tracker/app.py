@@ -1,5 +1,5 @@
 import os
-from datetime import datetime
+from datetime import datetime, date, timedelta
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
 from database.db import (
@@ -159,6 +159,37 @@ def logout():
     return redirect(url_for("login"))
 
 
+def resolve_date_range(period, custom_start=None, custom_end=None):
+    """Resolve a temporal preset or custom date range into ISO (YYYY-MM-DD) boundaries."""
+    today = date.today()
+
+    if period == "last_30_days":
+        start = (today - timedelta(days=30)).isoformat()
+        end = today.isoformat()
+    elif period == "last_month":
+        # First day of this month minus 1 day gives the last day of previous month
+        first_of_this_month = today.replace(day=1)
+        last_of_prev_month = first_of_this_month - timedelta(days=1)
+        start = last_of_prev_month.replace(day=1).isoformat()
+        end = last_of_prev_month.isoformat()
+    elif period == "all_time":
+        start = None
+        end = None
+    elif period == "custom" and custom_start and custom_end:
+        start = str(custom_start).strip()[:10]
+        end = str(custom_end).strip()[:10]
+        # Inverted date boundary auto-correction
+        if start > end:
+            start, end = end, start
+    else:
+        # Default preset: this_month
+        period = "this_month"
+        start = today.replace(day=1).isoformat()
+        end = today.isoformat()
+
+    return period, start, end
+
+
 @app.route("/profile", methods=["GET", "POST"])
 def profile():
     user_id = session.get("user_id")
@@ -185,9 +216,16 @@ def profile():
             user = get_user_by_id(user_id)
             success = "Profile updated successfully."
 
-    stats = get_user_stats(user_id)
-    categories = get_category_breakdown(user_id)
-    recent_raw = get_user_expenses(user_id, limit=5)
+    # Parse date range filter query params
+    period = request.args.get("period", "this_month")
+    req_start = request.args.get("start_date")
+    req_end = request.args.get("end_date")
+
+    selected_period, start_date, end_date = resolve_date_range(period, req_start, req_end)
+
+    stats = get_user_stats(user_id, start_date=start_date, end_date=end_date)
+    categories = get_category_breakdown(user_id, start_date=start_date, end_date=end_date)
+    recent_raw = get_user_expenses(user_id, limit=5, start_date=start_date, end_date=end_date)
     total_spent = stats["total_spent"]
 
     # Member since formatting
@@ -228,6 +266,11 @@ def profile():
         top_category=top_category,
         categories=formatted_categories,
         recent_expenses=recent_expenses,
+        selected_period=selected_period,
+        start_date=start_date,
+        end_date=end_date,
+        filter_start_date=start_date,
+        filter_end_date=end_date,
         error=error,
         success=success
     )
@@ -259,9 +302,16 @@ def api_expenses():
 
     limit = request.args.get("limit", type=int)
     offset = request.args.get("offset", default=0, type=int)
+    start_date = request.args.get("start_date")
+    end_date = request.args.get("end_date")
 
-    expenses = get_user_expenses(user_id, limit=limit, offset=offset)
-    return jsonify({"expenses": expenses, "count": len(expenses)})
+    expenses = get_user_expenses(user_id, limit=limit, offset=offset, start_date=start_date, end_date=end_date)
+    return jsonify({
+        "expenses": expenses,
+        "count": len(expenses),
+        "start_date": start_date,
+        "end_date": end_date
+    })
 
 
 # ------------------------------------------------------------------ #
@@ -273,13 +323,18 @@ def api_stats_summary():
     if not user_id:
         return jsonify({"error": "Authentication required"}), 401
 
-    stats = get_user_stats(user_id)
+    start_date = request.args.get("start_date")
+    end_date = request.args.get("end_date")
+
+    stats = get_user_stats(user_id, start_date=start_date, end_date=end_date)
     avg_spent = round(stats["total_spent"] / stats["total_count"], 2) if stats["total_count"] > 0 else 0.0
 
     return jsonify({
         "total_count": stats["total_count"],
         "total_spent": stats["total_spent"],
-        "average_spent": avg_spent
+        "average_spent": avg_spent,
+        "start_date": start_date,
+        "end_date": end_date
     })
 
 
@@ -292,12 +347,20 @@ def api_stats_categories():
     if not user_id:
         return jsonify({"error": "Authentication required"}), 401
 
-    categories = get_category_breakdown(user_id)
+    start_date = request.args.get("start_date")
+    end_date = request.args.get("end_date")
+
+    categories = get_category_breakdown(user_id, start_date=start_date, end_date=end_date)
     total_spent = sum(c["total_amount"] for c in categories)
     for c in categories:
         c["percentage"] = round((c["total_amount"] / total_spent * 100), 1) if total_spent > 0 else 0.0
 
-    return jsonify({"categories": categories, "total_spent": total_spent})
+    return jsonify({
+        "categories": categories,
+        "total_spent": total_spent,
+        "start_date": start_date,
+        "end_date": end_date
+    })
 
 
 if __name__ == "__main__":
