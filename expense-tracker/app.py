@@ -5,7 +5,8 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from database.db import (
     init_db, seed_db, get_user_by_email, create_user,
     get_user_by_id, update_user_name, get_user_stats,
-    get_user_expenses, get_category_breakdown
+    get_user_expenses, get_category_breakdown,
+    get_standard_categories, create_expense
 )
 
 app = Flask(__name__)
@@ -276,9 +277,81 @@ def profile():
     )
 
 
-@app.route("/expenses/add")
+@app.route("/expenses/add", methods=["GET", "POST"])
 def add_expense():
-    return "Add expense — coming in Step 7"
+    user_id = session.get("user_id")
+    if not user_id:
+        return redirect(url_for("login"))
+
+    categories = get_standard_categories()
+    today = date.today().isoformat()
+    error = None
+
+    if request.method == "POST":
+        amount_raw = request.form.get("amount", "").strip()
+        category = request.form.get("category", "").strip()
+        date_str = request.form.get("date", "").strip()
+        description = request.form.get("description", "").strip()
+
+        # 1. Validate Amount
+        try:
+            amount = float(amount_raw)
+            if amount <= 0:
+                error = "Amount must be greater than zero."
+            elif amount > 10000000.0:
+                error = "Amount must not exceed ₹1,00,00,000."
+        except (ValueError, TypeError):
+            error = "Amount must be a valid number."
+
+        # 2. Validate Category
+        if not error and category not in categories:
+            error = "Please select a valid expense category."
+
+        # 3. Validate Date
+        if not error:
+            try:
+                parsed_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+                if parsed_date.year < 2000 or parsed_date.year > date.today().year + 1:
+                    error = "Date must be between year 2000 and next year."
+            except (ValueError, TypeError):
+                error = "Please enter a valid date (YYYY-MM-DD)."
+
+        # 4. Validate Description
+        if not error and len(description) > 200:
+            error = "Description must not exceed 200 characters."
+
+        if error:
+            return render_template(
+                "add_expense.html",
+                error=error,
+                today=today,
+                categories=categories,
+                values=request.form
+            ), 400
+
+        # Save expense strictly via db.py
+        create_expense(
+            user_id=user_id,
+            amount=amount,
+            category=category,
+            date=date_str,
+            description=description
+        )
+        return redirect(url_for("profile"))
+
+    # GET default values
+    values = {
+        "date": today,
+        "category": "Food",
+        "amount": "",
+        "description": ""
+    }
+    return render_template(
+        "add_expense.html",
+        today=today,
+        categories=categories,
+        values=values
+    )
 
 
 @app.route("/expenses/<int:id>/edit")
@@ -294,11 +367,60 @@ def delete_expense(id):
 # ------------------------------------------------------------------ #
 # SECTION 1: Transaction History Routes (Subagent 1)                 #
 # ------------------------------------------------------------------ #
-@app.route("/api/expenses", methods=["GET"])
+@app.route("/api/expenses", methods=["GET", "POST"])
 def api_expenses():
     user_id = session.get("user_id")
     if not user_id:
         return jsonify({"error": "Authentication required"}), 401
+
+    if request.method == "POST":
+        data = request.get_json(silent=True) or {}
+        amount_raw = data.get("amount")
+        category = str(data.get("category", "")).strip()
+        date_str = str(data.get("date", "")).strip()
+        description = str(data.get("description", "")).strip() if data.get("description") else None
+
+        categories = get_standard_categories()
+        try:
+            amount = float(amount_raw)
+            if amount <= 0:
+                return jsonify({"error": "Amount must be greater than zero."}), 400
+            if amount > 10000000.0:
+                return jsonify({"error": "Amount must not exceed ₹1,00,00,000."}), 400
+        except (ValueError, TypeError):
+            return jsonify({"error": "Amount must be a valid number."}), 400
+
+        if category not in categories:
+            return jsonify({"error": "Please select a valid expense category."}), 400
+
+        try:
+            parsed_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+            if parsed_date.year < 2000 or parsed_date.year > date.today().year + 1:
+                return jsonify({"error": "Date must be between year 2000 and next year."}), 400
+        except (ValueError, TypeError):
+            return jsonify({"error": "Please enter a valid date (YYYY-MM-DD)."}), 400
+
+        if description and len(description) > 200:
+            return jsonify({"error": "Description must not exceed 200 characters."}), 400
+
+        new_id = create_expense(
+            user_id=user_id,
+            amount=amount,
+            category=category,
+            date=date_str,
+            description=description
+        )
+        return jsonify({
+            "message": "Expense created successfully",
+            "expense": {
+                "id": new_id,
+                "user_id": user_id,
+                "amount": round(amount, 2),
+                "category": category,
+                "date": date_str,
+                "description": description
+            }
+        }), 201
 
     limit = request.args.get("limit", type=int)
     offset = request.args.get("offset", default=0, type=int)

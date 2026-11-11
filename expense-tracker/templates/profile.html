@@ -69,7 +69,10 @@
         <div class="profile-dashboard-grid">
             <!-- Left Card: Recent Transactions -->
             <div class="dashboard-panel-card">
-                <h2 class="panel-card-title">Recent Transactions</h2>
+                <div class="panel-header-row">
+                    <h2 class="panel-card-title">Recent Transactions</h2>
+                    <a href="{{ url_for('add_expense') }}" class="btn-action-add">+ Add Expense</a>
+                </div>
                 <table class="recent-tx-table">
                     <thead>
                         <tr>

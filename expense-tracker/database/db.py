@@ -274,3 +274,77 @@ def get_category_breakdown(user_id, start_date=None, end_date=None):
         return [dict(r) for r in rows]
     finally:
         conn.close()
+
+
+# ------------------------------------------------------------------ #
+# Expense Categories & Creation Operations                            #
+# ------------------------------------------------------------------ #
+
+EXPENSE_CATEGORIES = [
+    "Food",
+    "Transport",
+    "Bills",
+    "Health",
+    "Entertainment",
+    "Shopping",
+    "Other"
+]
+
+
+def get_standard_categories():
+    """Return the list of standard expense categories."""
+    return list(EXPENSE_CATEGORIES)
+
+
+def create_expense(user_id, amount, category, date, description=None):
+    """Insert a new expense record for a user.
+
+    Parameters:
+        user_id (int): Foreign key referencing users(id).
+        amount (float): Transaction amount (must be positive).
+        category (str): Valid category name.
+        date (str): Transaction date in YYYY-MM-DD ISO format.
+        description (str, optional): Short note or transaction detail.
+
+    Returns:
+        int: The auto-incremented primary key ID of the newly created expense.
+    """
+    conn = get_db()
+    cursor = conn.cursor()
+    try:
+        desc_val = description.strip() if (description and description.strip()) else None
+        cursor.execute(
+            """
+            INSERT INTO expenses (user_id, amount, category, date, description)
+            VALUES (?, ?, ?, ?, ?);
+            """,
+            (
+                user_id,
+                round(float(amount), 2),
+                category.strip(),
+                str(date).strip(),
+                desc_val
+            )
+        )
+        conn.commit()
+        return cursor.lastrowid
+    finally:
+        conn.close()
+
+
+def get_expense_by_id(expense_id):
+    """Retrieve an expense record by its primary key ID.
+    Returns dict if found, None otherwise.
+    """
+    conn = get_db()
+    cursor = conn.cursor()
+    try:
+        row = cursor.execute(
+            "SELECT id, user_id, amount, category, date, description, created_at FROM expenses WHERE id = ?;",
+            (expense_id,)
+        ).fetchone()
+        return dict(row) if row else None
+    finally:
+        conn.close()
+
+
