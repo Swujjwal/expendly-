@@ -348,3 +348,69 @@ def get_expense_by_id(expense_id):
         conn.close()
 
 
+def get_user_expense_by_id(expense_id, user_id):
+    """Retrieve an expense record by ID ensuring strict user ownership.
+
+    Parameters:
+        expense_id (int): Primary key of the expense.
+        user_id (int): ID of the authenticated user.
+
+    Returns:
+        dict: Expense dictionary if found and owned by user, None otherwise.
+    """
+    conn = get_db()
+    cursor = conn.cursor()
+    try:
+        row = cursor.execute(
+            """
+            SELECT id, user_id, amount, category, date, description, created_at
+            FROM expenses
+            WHERE id = ? AND user_id = ?;
+            """,
+            (expense_id, user_id)
+        ).fetchone()
+        return dict(row) if row else None
+    finally:
+        conn.close()
+
+
+def update_expense(expense_id, user_id, amount, category, date, description=None):
+    """Update an existing expense record belonging to a specific user.
+
+    Parameters:
+        expense_id (int): ID of the expense to update.
+        user_id (int): ID of the authenticated owner.
+        amount (float): Updated transaction amount (positive number).
+        category (str): Valid category name.
+        date (str): Updated date in YYYY-MM-DD ISO format.
+        description (str, optional): Updated description text.
+
+    Returns:
+        bool: True if record was updated, False if not found or unauthorized.
+    """
+    conn = get_db()
+    cursor = conn.cursor()
+    try:
+        desc_val = description.strip() if (description and description.strip()) else None
+        cursor.execute(
+            """
+            UPDATE expenses
+            SET amount = ?, category = ?, date = ?, description = ?
+            WHERE id = ? AND user_id = ?;
+            """,
+            (
+                round(float(amount), 2),
+                category.strip(),
+                str(date).strip(),
+                desc_val,
+                expense_id,
+                user_id
+            )
+        )
+        conn.commit()
+        return cursor.rowcount > 0
+    finally:
+        conn.close()
+
+
+

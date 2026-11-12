@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Expense — Spendly{% endblock %}
+
+{% block content %}
+<section class="auth-section expense-section">
+    <div class="auth-container expense-container">
+
+        <div class="expense-back-bar">
+            <a href="{{ url_for('profile') }}" class="back-link">← Back to Profile</a>
+        </div>
+
+        <div class="auth-header">
+            <h1 class="auth-title">Edit Expense</h1>
+            <p class="auth-subtitle">Update transaction details. Analytics and category graphs will recalculate immediately.</p>
+        </div>
+
+        <div class="auth-card expense-card">
+            {% if error %}
+            <div class="auth-error">{{ error }}</div>
+            {% endif %}
+
+            <form method="POST" action="{{ url_for('edit_expense', id=expense.id) }}" class="expense-form">
+                <div class="form-group">
+                    <label for="amount">Amount (₹)</label>
+                    <div class="input-with-currency">
+                        <span class="currency-symbol">₹</span>
+                        <input type="number" id="amount" name="amount"
+                               class="form-input currency-input"
+                               step="0.01" min="0.01" max="10000000"
+                               placeholder="0.00"
+                               value="{{ values.amount if values.amount is defined else expense.amount }}"
+                               required autofocus>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="category">Category</label>
+                    <select id="category" name="category" class="form-input form-select" required>
+                        {% for cat in categories %}
+                        <option value="{{ cat }}" {% if (values.category if values.category is defined else expense.category) == cat %}selected{% endif %}>{{ cat }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="date">Date</label>
+                    <input type="date" id="date" name="date"
+                           class="form-input"
+                           value="{{ values.date if values.date is defined else expense.date }}"
+                           required>
+                </div>
+
+                <div class="form-group">
+                    <label for="description">Description <span class="label-hint">(Optional)</span></label>
+                    <input type="text" id="description" name="description"
+                           class="form-input"
+                           maxlength="200"
+                           placeholder="e.g. Groceries from BigBasket, Uber ride"
+                           value="{{ values.description if values.description is defined else (expense.description or '') }}">
+                </div>
+
+                <div class="form-actions-row">
+                    <button type="submit" class="btn-submit btn-save-expense">Save Changes</button>
+                    <a href="{{ url_for('profile') }}" class="btn-cancel">Cancel</a>
+                </div>
+            </form>
+        </div>
+
+    </div>
+</section>
+{% endblock %}

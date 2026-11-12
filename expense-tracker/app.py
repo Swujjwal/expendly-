@@ -6,7 +6,8 @@ from database.db import (
     init_db, seed_db, get_user_by_email, create_user,
     get_user_by_id, update_user_name, get_user_stats,
     get_user_expenses, get_category_breakdown,
-    get_standard_categories, create_expense
+    get_standard_categories, create_expense,
+    get_user_expense_by_id, update_expense
 )
 
 app = Flask(__name__)
@@ -354,9 +355,85 @@ def add_expense():
     )
 
 
-@app.route("/expenses/<int:id>/edit")
+@app.route("/expenses/<int:id>/edit", methods=["GET", "POST"])
 def edit_expense(id):
-    return "Edit expense — coming in Step 8"
+    user_id = session.get("user_id")
+    if not user_id:
+        return redirect(url_for("login"))
+
+    expense = get_user_expense_by_id(expense_id=id, user_id=user_id)
+    if not expense:
+        return "Expense not found", 404
+
+    categories = get_standard_categories()
+    error = None
+
+    if request.method == "POST":
+        amount_raw = request.form.get("amount", "").strip()
+        category = request.form.get("category", "").strip()
+        date_str = request.form.get("date", "").strip()
+        description = request.form.get("description", "").strip()
+
+        # 1. Validate Amount
+        try:
+            amount = float(amount_raw)
+            if amount <= 0:
+                error = "Amount must be greater than zero."
+            elif amount > 10000000.0:
+                error = "Amount must not exceed ₹1,00,00,000."
+        except (ValueError, TypeError):
+            error = "Amount must be a valid number."
+
+        # 2. Validate Category
+        if not error and category not in categories:
+            error = "Please select a valid expense category."
+
+        # 3. Validate Date
+        if not error:
+            try:
+                parsed_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+                if parsed_date.year < 2000 or parsed_date.year > date.today().year + 1:
+                    error = "Date must be between year 2000 and next year."
+            except (ValueError, TypeError):
+                error = "Please enter a valid date (YYYY-MM-DD)."
+
+        # 4. Validate Description
+        if not error and len(description) > 200:
+            error = "Description must not exceed 200 characters."
+
+        if error:
+            return render_template(
+                "edit_expense.html",
+                expense=expense,
+                categories=categories,
+                error=error,
+                values=request.form
+            ), 400
+
+        # Execute database update strictly via db.py
+        update_expense(
+            expense_id=id,
+            user_id=user_id,
+            amount=amount,
+            category=category,
+            date=date_str,
+            description=description
+        )
+        return redirect(url_for("profile"))
+
+    # GET: Populate form with existing expense values
+    values = {
+        "amount": expense["amount"],
+        "category": expense["category"],
+        "date": expense["date"],
+        "description": expense["description"] or ""
+    }
+    return render_template(
+        "edit_expense.html",
+        expense=expense,
+        categories=categories,
+        values=values
+    )
 
 
 @app.route("/expenses/<int:id>/delete")
@@ -367,6 +444,66 @@ def delete_expense(id):
 # ------------------------------------------------------------------ #
 # SECTION 1: Transaction History Routes (Subagent 1)                 #
 # ------------------------------------------------------------------ #
+@app.route("/api/expenses/<int:id>", methods=["GET", "PUT"])
+def api_expense_detail(id):
+    user_id = session.get("user_id")
+    if not user_id:
+        return jsonify({"error": "Authentication required"}), 401
+
+    expense = get_user_expense_by_id(expense_id=id, user_id=user_id)
+    if not expense:
+        return jsonify({"error": "Expense not found"}), 404
+
+    if request.method == "GET":
+        return jsonify({"expense": expense}), 200
+
+    # PUT: Update expense
+    data = request.get_json(silent=True) or {}
+    amount_raw = data.get("amount")
+    category = str(data.get("category", "")).strip()
+    date_str = str(data.get("date", "")).strip()
+    description = str(data.get("description", "")).strip() if data.get("description") else None
+
+    categories = get_standard_categories()
+    try:
+        amount = float(amount_raw)
+        if amount <= 0:
+            return jsonify({"error": "Amount must be greater than zero."}), 400
+        if amount > 10000000.0:
+            return jsonify({"error": "Amount must not exceed ₹1,00,00,000."}), 400
+    except (ValueError, TypeError):
+        return jsonify({"error": "Amount must be a valid number."}), 400
+
+    if category not in categories:
+        return jsonify({"error": "Please select a valid expense category."}), 400
+
+    try:
+        parsed_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+        if parsed_date.year < 2000 or parsed_date.year > date.today().year + 1:
+            return jsonify({"error": "Date must be between year 2000 and next year."}), 400
+    except (ValueError, TypeError):
+        return jsonify({"error": "Please enter a valid date (YYYY-MM-DD)."}), 400
+
+    if description and len(description) > 200:
+        return jsonify({"error": "Description must not exceed 200 characters."}), 400
+
+    success = update_expense(
+        expense_id=id,
+        user_id=user_id,
+        amount=amount,
+        category=category,
+        date=date_str,
+        description=description
+    )
+    if not success:
+        return jsonify({"error": "Expense not found"}), 404
+
+    updated = get_user_expense_by_id(expense_id=id, user_id=user_id)
+    return jsonify({
+        "message": "Expense updated successfully",
+        "expense": updated
+    }), 200
+
 @app.route("/api/expenses", methods=["GET", "POST"])
 def api_expenses():
     user_id = session.get("user_id")
