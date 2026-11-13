@@ -195,6 +195,7 @@ def update_user_name(user_id, name):
         conn.close()
 
 
+
 def get_user_stats(user_id, start_date=None, end_date=None):
     """Calculate summary stats for a user's expenses with optional date range.
     Returns a dict with: total_count, total_spent.
@@ -411,6 +412,33 @@ def update_expense(expense_id, user_id, amount, category, date, description=None
         return cursor.rowcount > 0
     finally:
         conn.close()
+
+
+def delete_expense(expense_id, user_id):
+    """Delete an expense record belonging to a specific user.
+
+    Parameters:
+        expense_id (int): Primary key ID of the expense to delete.
+        user_id (int): Foreign key ID of the authenticated user.
+
+    Returns:
+        bool: True if an expense was deleted, False if record not found or unauthorized.
+    """
+    conn = get_db()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            """
+            DELETE FROM expenses
+            WHERE id = ? AND user_id = ?;
+            """,
+            (expense_id, user_id)
+        )
+        conn.commit()
+        return cursor.rowcount > 0
+    finally:
+        conn.close()
+
 
 
 

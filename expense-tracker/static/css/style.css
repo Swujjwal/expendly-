@@ -1675,14 +1675,27 @@ a { color: inherit; text-decoration: none; }
 }
 
 /* ------------------------------------------------------------------ */
-/* Step 8: Edit Expense & Table Action Column Styles                  */
+/* Step 8 & 9: Edit & Delete Expense Table Action Column Styles       */
 /* ------------------------------------------------------------------ */
 
 .recent-tx-table th.th-actions,
 .recent-tx-table td.td-actions {
     text-align: right;
     white-space: nowrap;
-    width: 72px;
+    width: 140px;
+}
+
+.td-actions {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.35rem;
+}
+
+.inline-delete-form {
+    display: inline-block;
+    margin: 0;
+    padding: 0;
 }
 
 .btn-table-edit {
@@ -1703,5 +1716,47 @@ a { color: inherit; text-decoration: none; }
     color: #ffffff !important;
     border-color: #143e26;
 }
+
+.btn-table-delete {
+    font-size: 0.75rem;
+    font-weight: 500;
+    padding: 0.25rem 0.65rem;
+    border-radius: 6px;
+    border: 1px solid #fee2e2;
+    background: #fef2f2;
+    color: #dc2626 !important;
+    cursor: pointer;
+    line-height: normal;
+    font-family: inherit;
+    transition: all 0.15s ease;
+    display: inline-block;
+}
+
+.btn-table-delete:hover {
+    background: #dc2626;
+    color: #ffffff !important;
+    border-color: #dc2626;
+}
+
+.btn-delete-expense {
+    padding: 0.75rem 1.25rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: #dc2626 !important;
+    background: #fef2f2;
+    border: 1px solid #fee2e2;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    font-family: inherit;
+    margin-left: auto;
+}
+
+.btn-delete-expense:hover {
+    background: #dc2626;
+    color: #ffffff !important;
+    border-color: #dc2626;
+}
+
 
 

@@ -1,13 +1,14 @@
 import os
 from datetime import datetime, date, timedelta
-from flask import Flask, render_template, request, redirect, url_for, session, jsonify
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify, flash
 from werkzeug.security import generate_password_hash, check_password_hash
 from database.db import (
     init_db, seed_db, get_user_by_email, create_user,
     get_user_by_id, update_user_name, get_user_stats,
     get_user_expenses, get_category_breakdown,
     get_standard_categories, create_expense,
-    get_user_expense_by_id, update_expense
+    get_user_expense_by_id, update_expense,
+    delete_expense as db_delete_expense
 )
 
 app = Flask(__name__)
@@ -436,19 +437,37 @@ def edit_expense(id):
     )
 
 
-@app.route("/expenses/<int:id>/delete")
+@app.route("/expenses/<int:id>/delete", methods=["POST"])
 def delete_expense(id):
-    return "Delete expense — coming in Step 9"
+    user_id = session.get("user_id")
+    if not user_id:
+        return redirect(url_for("login"))
+
+    success = db_delete_expense(expense_id=id, user_id=user_id)
+    if not success:
+        return "Expense not found", 404
+
+    flash("Expense deleted successfully.", "success")
+    return redirect(url_for("profile"))
 
 
 # ------------------------------------------------------------------ #
 # SECTION 1: Transaction History Routes (Subagent 1)                 #
 # ------------------------------------------------------------------ #
-@app.route("/api/expenses/<int:id>", methods=["GET", "PUT"])
+@app.route("/api/expenses/<int:id>", methods=["GET", "PUT", "DELETE"])
 def api_expense_detail(id):
     user_id = session.get("user_id")
     if not user_id:
         return jsonify({"error": "Authentication required"}), 401
+
+    if request.method == "DELETE":
+        success = db_delete_expense(expense_id=id, user_id=user_id)
+        if not success:
+            return jsonify({"error": "Expense not found"}), 404
+        return jsonify({
+            "message": "Expense deleted successfully",
+            "id": id
+        }), 200
 
     expense = get_user_expense_by_id(expense_id=id, user_id=user_id)
     if not expense:
